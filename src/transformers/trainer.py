@@ -2167,7 +2167,7 @@ class Trainer:
                 torch.save(self.scaler.state_dict(), os.path.join(output_dir, SCALER_NAME))
 
         # Determine the new best metric / best model checkpoint
-        if metrics is not None and self.args.metric_for_best_model is not None:
+        if metrics is not None and self.args.metric_for_best_model is not None and not "intermediate" in self.args.metric_for_best_model:
             metric_to_check = self.args.metric_for_best_model
             if not metric_to_check.startswith("eval_"):
                 metric_to_check = f"eval_{metric_to_check}"
