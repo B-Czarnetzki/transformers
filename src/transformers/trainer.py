@@ -2052,7 +2052,9 @@ class Trainer:
                 metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
             self._report_to_hp_search(trial, self.state.global_step, metrics)
 
-        if self.control.should_save and not "intermediate" in self.args.metric_for_best_model:
+        if self.control.should_save:
+            print("printing metrics")
+            print(metrics)
             self._save_checkpoint(model, trial, metrics=metrics)
             self.control = self.callback_handler.on_save(self.args, self.state, self.control)
 
@@ -2168,9 +2170,14 @@ class Trainer:
 
         # Determine the new best metric / best model checkpoint
         if metrics is not None and self.args.metric_for_best_model is not None:
+            print("\nprinting self.args.metric_for_best_model")
+            print(self.args.metric_for_best_model)
             metric_to_check = self.args.metric_for_best_model
             if not metric_to_check.startswith("eval_"):
                 metric_to_check = f"eval_{metric_to_check}"
+            print("\nprinting metric to check")
+            print(metric_to_check)
+            print(metrics_[metric_to_check])
             metric_value = metrics[metric_to_check]
 
             operator = np.greater if self.args.greater_is_better else np.less
