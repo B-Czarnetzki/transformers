@@ -2042,8 +2042,9 @@ class Trainer:
         metrics = None
         if self.control.should_evaluate:
             if isinstance(self.eval_dataset, dict):
+                metrics = {}
                 for eval_dataset_name, eval_dataset in self.eval_dataset.items():
-                    metrics = self.evaluate(
+                    metrics = metrics | self.evaluate(
                         eval_dataset=eval_dataset,
                         ignore_keys=ignore_keys_for_eval,
                         metric_key_prefix=f"eval_{eval_dataset_name}",
@@ -2177,7 +2178,7 @@ class Trainer:
                 metric_to_check = f"eval_{metric_to_check}"
             print("\nprinting metric to check")
             print(metric_to_check)
-            print(metrics_[metric_to_check])
+            print(metrics[metric_to_check])
             metric_value = metrics[metric_to_check]
 
             operator = np.greater if self.args.greater_is_better else np.less
