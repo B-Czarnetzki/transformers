@@ -121,9 +121,9 @@ class M2MSeq2SeqTrainer(Seq2SeqTrainer):
         return (loss, generated_tokens, labels)
 
     def _remove_unused_columns(self, dataset: "datasets.Dataset", description: Optional[str] = None):
-            def _remove_unused_columns(self, dataset: "datasets.Dataset", description: Optional[str] = None):
         if not self.args.remove_unused_columns:
             return dataset
+
         self._set_signature_columns_if_needed()
         # add to signature_columns "forced_bos_token_id"
         print("signature_columns before")
