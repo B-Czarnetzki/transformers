@@ -616,6 +616,11 @@ class ForcedBOSTokenLogitsProcessor(LogitsProcessor):
         cur_len = input_ids.shape[-1]
         if cur_len == 1:
             num_tokens = scores.shape[1]
+            print("hello")
+            print(self.bos_token_id)
+            print("\nprinting token ids")
+            print("\n\nDone \n\n\n\n\n")
+            print([i for i in range(num_tokens)])
             scores[:, [i for i in range(num_tokens) if i != self.bos_token_id]] = -float("inf")
             scores[:, self.bos_token_id] = 0
         return scores
