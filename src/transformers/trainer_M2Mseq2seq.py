@@ -11,7 +11,7 @@ from .trainer import Trainer
 from .trainer_utils import PredictionOutput
 from .utils import logging
 from packaging import version
-
+import datasets
 
 logger = logging.get_logger(__name__)
 
