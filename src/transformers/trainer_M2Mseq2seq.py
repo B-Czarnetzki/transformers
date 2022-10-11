@@ -126,11 +126,9 @@ class M2MSeq2SeqTrainer(Seq2SeqTrainer):
 
         self._set_signature_columns_if_needed()
         # add to signature_columns "forced_bos_token_id"
-        print("signature_columns before")
-        print(self._signature_columns)
-        signature_columns = self._signature_columns + "forced_bos_token_id"
-        print("\nSignature columns after")
-        print(signature_columns)
+
+        signature_columns = self._signature_columns + ["forced_bos_token_id"]
+
 
         ignored_columns = list(set(dataset.column_names) - set(signature_columns))
         if len(ignored_columns) > 0:
