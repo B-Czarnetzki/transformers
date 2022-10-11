@@ -10,6 +10,7 @@ from .deepspeed import is_deepspeed_zero3_enabled
 from .trainer import Trainer
 from .trainer_utils import PredictionOutput
 from .utils import logging
+from packaging import version
 
 
 logger = logging.get_logger(__name__)
