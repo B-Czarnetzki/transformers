@@ -2,7 +2,7 @@ import transformers
 import numpy as np
 #from transformers import M2M100Tokenizer, M2M100Model
 from datasets import load_dataset, load_metric
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, TrainerCallback
 import wandb
 
 from torch.utils.checkpoint import checkpoint
@@ -17,8 +17,8 @@ second_datasets = load_dataset("ted_hrlr", "tr_to_en")
 model_checkpoint = "facebook/m2m100_418M"
 hierarchichal_checkpoint = model_checkpoint
 
-source_lang = "en"
-target_lang = "az"
+source_lang = "az"
+target_lang = "en"
 second_lang = "tr"
 
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, src_lang=source_lang, tgt_lang=target_lang)
@@ -26,7 +26,7 @@ second_tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, src_lang=seco
 model = AutoModelForSeq2SeqLM.from_pretrained(hierarchichal_checkpoint)
 
 # We have to set the model decoding to force the target language as the bos token. 
-model.config.forced_bos_token_id = tokenizer.get_lang_id(target_lang)
+#model.config.forced_bos_token_id = tokenizer.get_lang_id(target_lang)
 
 
 max_input_length = 128
@@ -42,23 +42,31 @@ def preprocess_function(examples):
         labels = tokenizer(targets, max_length=max_target_length, truncation=True)
 
     model_inputs["labels"] = labels["input_ids"]
+
+    # Add column for forced_bos_token_id
+    new_column = tokenizer.get_lang_id(target_lang) * len(labels["input_ids"])
+    model_inputs["forced_bos_token_id"] = new_column
+
+
     return model_inputs
 
 
-tokenized_datasets = raw_datasets.map(preprocess_function, batched=True, load_from_cache_file=False)
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True, load_from_cache_file=True)
 
-# Tokenize second (intermediate dataset) 
-
-source_lang = source_lang
-target_lang = second_lang
+source_lang = second_lang
+target_lang = target_lang
 
 tokenizer.src_lang = source_lang
 tokenizer.tgt_lang = target_lang
-model.config.forced_bos_token_id = tokenizer.get_lang_id(target_lang) 
+#model.config.forced_bos_token_id = tokenizer.get_lang_id(target_lang)
 
-second_tokenized_datasets = second_datasets.map(preprocess_function, batched=True, load_from_cache_file=False) 
-print(len(second_tokenized_datasets["train"]))
-model.config.forced_bos_token_id = tokenizer.get_lang_id("az")
+
+second_tokenized_datasets = second_datasets.map(preprocess_function, batched=True, load_from_cache_file=True)
+
+#model.config.forced_bos_token_id = tokenizer.get_lang_id("az")
+
+
+
 
 # Training setup
 batch_size = 4
@@ -79,9 +87,9 @@ args = Seq2SeqTrainingArguments(
     log_level="info",
     logging_dir="logging/"+model_name,
     logging_strategy="steps",
-    logging_steps=46,
+    logging_steps=1,
     save_strategy="steps",
-    save_steps=46, 
+    save_steps=1,
     load_best_model_at_end=True, 
     metric_for_best_model="eval_downstream_lang_bleu",
     ddp_find_unused_parameters=True,
@@ -124,8 +132,8 @@ def compute_metrics(eval_preds):
 
 # Initializing Trainer
 
-eval_datasets = {"downstream_lang": tokenized_datasets["validation"], "intermediate_lang": second_tokenized_datasets["validation"]}
-#eval_datasets = {"downstream_lang": tokenized_datasets["validation"]}
+eval_datasets = {"downstream_lang": tokenized_datasets["validation"].select(range(50)), "intermediate_lang": second_tokenized_datasets["validation"].select(range(60))}
+#eval_datasets = {"downstream_lang": tokenized_datasets["validation"]6
 
 # set dropout
 
@@ -133,16 +141,20 @@ dropout_rate = 0.1
 model.config.dropout = dropout_rate
 model.config.attention_dropout = dropout_rate
 
+class StopCallback(TrainerCallback):
+        def on_epoch_end(self, args, state, control, logs=None, **kwargs):
+            control.should_training_stop = True
+            print("stopping training")
 
 trainer = Seq2SeqTrainer(
     model,
     args,
-    train_dataset=tokenized_datasets["train"],
+    train_dataset=tokenized_datasets["train"].select(range(70)),
     eval_dataset=eval_datasets,
     data_collator=data_collator,
     tokenizer=tokenizer,
     compute_metrics=compute_metrics,
-    callbacks=[transformers.EarlyStoppingCallback(early_stopping_patience=6)]
+    callbacks=[transformers.EarlyStoppingCallback(early_stopping_patience=6), StopCallback]
 )
 
 # start training
