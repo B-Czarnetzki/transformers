@@ -12,6 +12,8 @@ from .trainer_utils import PredictionOutput
 from .utils import logging
 
 
+logger = logging.get_logger(__name__)
+
 class M2MSeq2SeqTrainer(Seq2SeqTrainer):
 
     def prediction_step(
