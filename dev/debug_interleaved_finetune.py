@@ -2,7 +2,7 @@ import transformers
 import numpy as np
 #from transformers import M2M100Tokenizer, M2M100Model
 from datasets import load_dataset, load_metric
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, TrainerCallback
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, M2MSeq2SeqTrainer, TrainerCallback
 import wandb
 
 from torch.utils.checkpoint import checkpoint
@@ -44,7 +44,7 @@ def preprocess_function(examples):
     model_inputs["labels"] = labels["input_ids"]
 
     # Add column for forced_bos_token_id
-    new_column = tokenizer.get_lang_id(target_lang) * len(labels["input_ids"])
+    new_column = [tokenizer.get_lang_id(target_lang)] * len(labels["input_ids"])
     model_inputs["forced_bos_token_id"] = new_column
 
 
@@ -146,7 +146,7 @@ class StopCallback(TrainerCallback):
             control.should_training_stop = True
             print("stopping training")
 
-trainer = Seq2SeqTrainer(
+trainer = M2MSeq2SeqTrainer(
     model,
     args,
     train_dataset=tokenized_datasets["train"].select(range(70)),
