@@ -31,7 +31,7 @@ import warnings
 from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
-from datasets import concatenate_dataset
+from datasets import concatenate_datasets
 
 from tqdm.auto import tqdm
 
