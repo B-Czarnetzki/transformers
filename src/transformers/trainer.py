@@ -1948,13 +1948,11 @@ class Trainer:
     def _load_best_model(self):
         logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
         if self.args.load_last_model_at_end:
-            best_model_path = get_last_checkpoint(self.args.output_dir)
+            best_model_path = os.path.join(get_last_checkpoint(self.args.output_dir), WEIGHTS_NAME)
         else:
             best_model_path = os.path.join(self.state.best_model_checkpoint, WEIGHTS_NAME)
 
-        print("checking paths")
-        print(best_model_path)
-        print(os.path.join(self.state.best_model_checkpoint, WEIGHTS_NAME))
+
 
         model = self.model_wrapped if is_sagemaker_mp_enabled() else self.model
         if os.path.exists(best_model_path):
