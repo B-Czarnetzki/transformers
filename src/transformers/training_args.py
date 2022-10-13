@@ -719,6 +719,7 @@ class TrainingArguments:
         },
     )
     local_rank: int = field(default=-1, metadata={"help": "For distributed training: local_rank"})
+    num_interleaves: int = field(default=-1, metadata={"help": "number of sentences to interlieve"})
     xpu_backend: Optional[str] = field(
         default=None,
         metadata={"help": "The backend to be used for distributed training on Intel XPU.", "choices": ["mpi", "ccl"]},

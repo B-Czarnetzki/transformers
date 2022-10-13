@@ -31,6 +31,7 @@ import warnings
 from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from datasets import concatenate_dataset
 
 from tqdm.auto import tqdm
 
@@ -297,6 +298,7 @@ class Trainer:
         args: TrainingArguments = None,
         data_collator: Optional[DataCollator] = None,
         train_dataset: Optional[Dataset] = None,
+        second_train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Dataset] = None,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
         model_init: Callable[[], PreTrainedModel] = None,
@@ -430,6 +432,7 @@ class Trainer:
         default_collator = default_data_collator if tokenizer is None else DataCollatorWithPadding(tokenizer)
         self.data_collator = data_collator if data_collator is not None else default_collator
         self.train_dataset = train_dataset
+        self.second_train_dataset = second_train_dataset
         self.eval_dataset = eval_dataset
         self.tokenizer = tokenizer
 
@@ -841,6 +844,11 @@ class Trainer:
             raise ValueError("Trainer: training requires a train_dataset.")
 
         train_dataset = self.train_dataset
+
+        # If second dataset exists interleave the two
+        if self.second_train_dataset is not None:
+            second_train_dataset = self.second_train_dataset
+            train_dataset = concatenate_datasets([train_dataset, second_train_dataset.shuffle(seed=42).select(range(self.args.num_interleaves))])
         data_collator = self.data_collator
         if is_datasets_available() and isinstance(train_dataset, datasets.Dataset):
             train_dataset = self._remove_unused_columns(train_dataset, description="training")
@@ -1514,6 +1522,7 @@ class Trainer:
         # Data loader and number of training steps
         train_dataloader = self.get_train_dataloader()
 
+
         # Setting up training control variables:
         # number of training epochs: num_train_epochs
         # number of training steps per epoch: num_update_steps_per_epoch
@@ -1675,7 +1684,12 @@ class Trainer:
 
         # Skip the first epochs_trained epochs to get the random state of the dataloader at the right point.
         if not args.ignore_data_skip:
+            start_count = 0
             for epoch in range(epochs_trained):
+                if self.second_train_dataset is not None and start_count > 0:
+                    print("creating new interleaved dataloader")
+                    train_dataloader = self.get_train_dataloader()
+                start_count +=1
                 is_random_sampler = hasattr(train_dataloader, "sampler") and isinstance(
                     train_dataloader.sampler, RandomSampler
                 )
