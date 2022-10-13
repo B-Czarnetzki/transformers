@@ -1853,7 +1853,7 @@ class Trainer:
             delattr(self, "_past")
 
         logger.info("\n\nTraining completed. Do not forget to share your model on huggingface.co/models =)\n\n")
-        if args.load_best_model_at_end and self.state.best_model_checkpoint is not None:
+        if args.load_best_model_at_end and self.state.best_model_checkpoint is not None and not if not self.args.load_last_model_at_end:
             # Wait for everyone to get here so we are sur the model has been saved by process 0.
             if is_torch_tpu_available():
                 xm.rendezvous("load_best_model_at_end")
@@ -1861,6 +1861,7 @@ class Trainer:
                 dist.barrier()
             elif is_sagemaker_mp_enabled():
                 smp.barrier()
+
 
             self._load_best_model()
 
