@@ -1951,8 +1951,11 @@ class Trainer:
             best_model_path = get_last_checkpoint(self.args.output_dir)
         else:
             best_model_path = os.path.join(self.state.best_model_checkpoint, WEIGHTS_NAME)
-        print("best model checkpoint", self.state.best_model_checkpoint)
-        print("sagemaker ", is_sagemaker_mp_enabled())
+
+        print("checking paths")
+        print(best_model_path)
+        print(os.path.join(self.state.best_model_checkpoint, WEIGHTS_NAME))
+
         model = self.model_wrapped if is_sagemaker_mp_enabled() else self.model
         if os.path.exists(best_model_path):
             if self.deepspeed:
@@ -1991,7 +1994,6 @@ class Trainer:
                         state_dict["_smp_is_partial"] = False
                         load_result = model.load_state_dict(state_dict, strict=True)
                 else:
-                    print("\n\n\n\nhello")
                     # We load the model state dict on the CPU to avoid an OOM error.
                     state_dict = torch.load(best_model_path, map_location="cpu")
                     # If the model is on the GPU, it still works!
