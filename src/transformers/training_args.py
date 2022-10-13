@@ -778,6 +778,10 @@ class TrainingArguments:
         default=None, metadata={"help": "The list of keys in your dictionary of inputs that correspond to the labels."}
     )
 
+    load_last_model_at_end: Optional[bool] = field(
+        default=False, metadata={"help": "Overwrites load best"}
+    )
+
     load_best_model_at_end: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether or not to load the best model found during training at the end of training."},

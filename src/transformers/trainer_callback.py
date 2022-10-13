@@ -578,4 +578,7 @@ class EarlyStoppingCallback(TrainerCallback):
 
         self.check_metric_value(args, state, control, metric_value)
         if self.early_stopping_patience_counter >= self.early_stopping_patience:
+            print("Early stopping")
+            print("Setting load_last_model_at_end to False")
+            args.load_last_model_at_end = False
             control.should_training_stop = True
