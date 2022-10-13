@@ -98,6 +98,7 @@ class M2MSeq2SeqTrainer(Seq2SeqTrainer):
 
         with torch.no_grad():
             with self.compute_loss_context_manager():
+                inputs.pop("forced_bos_token_id")
                 outputs = model(**inputs)
             if has_labels:
                 if self.label_smoother is not None:
