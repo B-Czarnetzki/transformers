@@ -1684,13 +1684,7 @@ class Trainer:
 
         # Skip the first epochs_trained epochs to get the random state of the dataloader at the right point.
         if not args.ignore_data_skip:
-            print("\n"*10)
-            print("hello"*10)
-            start_count = 0
             for epoch in range(epochs_trained):
-                if self.second_train_dataset is not None and start_count > 0:
-                    print("creating new interleaved dataloader")
-                    train_dataloader = self.get_train_dataloader()
                 start_count +=1
                 is_random_sampler = hasattr(train_dataloader, "sampler") and isinstance(
                     train_dataloader.sampler, RandomSampler
@@ -1707,7 +1701,6 @@ class Trainer:
 
         start_count = 0
         for epoch in range(epochs_trained, num_train_epochs):
-
             if self.second_train_dataset is not None and start_count > 0:
                     print("\n\n Creating new interleaved dataloader")
                     train_dataloader = self.get_train_dataloader()
