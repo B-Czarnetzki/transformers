@@ -47,10 +47,13 @@ To reproduce specific experiments we provide the following scripts.
 
 For inference on the base M2M100 model 'baseline.py'
 For fine-tuning the M2M100 model on a single language (in our case Azerbaijani) 'fintune_baseline.py'
-For fine-tuning on turkish (training the intermediate model) we provide 'intermediate_hierachical.py'
+For fine-tuning on turkish (training the intermediate model) we provide 'hierarchical_intermediate.py'
 For fine-tuning the intermediate model on the downstream task (using interleaving) 'downstream_interleaving.py'
 For using the M2MSeq2SeqTrainer with interleaving. downstream_interleaving_en_az.py'
 
 Note that you have to change the wandb login and specify the correct checkpoint directories in the training scripts for downstream finetuning.
 
 For comparing translations of different models on some selected sentences we provide 'inspect_sentence_translation.py'
+
+
+We also provide the notebooks used to find sentences with OOV words and vocab overlap in the 'DL4NLP folder'
