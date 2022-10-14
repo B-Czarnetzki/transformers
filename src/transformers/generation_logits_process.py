@@ -616,8 +616,12 @@ class ForcedBOSTokenLogitsProcessor(LogitsProcessor):
         cur_len = input_ids.shape[-1]
         if cur_len == 1:
             num_tokens = scores.shape[1]
-            scores[:, [i for i in range(num_tokens) if i not in self.bos_token_id]] = -float("inf")
-            scores[:, self.bos_token_id] = 0
+            if self.bos_token_id isintance(int):
+                scores[:, [i for i in range(num_tokens) if i != self.bos_token_id]] = -float("inf")
+                scores[:, self.bos_token_id] = 0
+            else:
+                scores[:, [i for i in range(num_tokens) if i not in self.bos_token_id]] = -float("inf")
+                scores[:, self.bos_token_id] = 0
         return scores
 
 
