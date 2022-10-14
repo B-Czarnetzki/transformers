@@ -1,4 +1,3 @@
-import os
 import transformers 
 import numpy as np
 #from transformers import M2M100Tokenizer, M2M100Model
@@ -6,19 +5,17 @@ from datasets import load_dataset, load_metric
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
 import wandb
 
-
 from torch.utils.checkpoint import checkpoint
 
 wandb.login(key="8b579a9be261e9cc153188122605c106eda8322e")
 
 
-raw_datasets = load_dataset("ted_hrlr", "tr_to_en")
+raw_datasets = load_dataset("ted_hrlr", "az_to_en")
 metric = load_metric("sacrebleu")
 
-tokenizer_checkpoint = "facebook/m2m100_418M"
-model_checkpoint = tokenizer_checkpoint
+model_checkpoint = "facebook/m2m100_418M"
 
-tokenizer = AutoTokenizer.from_pretrained(tokenizer_checkpoint, src_lang="tr", tgt_lang="en")
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, src_lang="az", tgt_lang="en")
 model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
 # We have to set the model decoding to force the target language as the bos token. 
@@ -27,7 +24,7 @@ model.config.forced_bos_token_id = tokenizer.get_lang_id("en")
 
 max_input_length = 128
 max_target_length = 128
-source_lang = "tr"
+source_lang = "az"
 target_lang = "en"
 
 def preprocess_function(examples):
@@ -43,13 +40,13 @@ def preprocess_function(examples):
     return model_inputs
 
 
-tokenized_datasets = raw_datasets.map(preprocess_function, batched=True, load_from_cache_file=False)
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
 
 
 
 # Training setup
 batch_size = 4
-model_name = "M2M_intermediate_tr_en"
+model_name = "M2M_at_to_en_baseline"
 args = Seq2SeqTrainingArguments(
     "checkpoints/"+model_name,
     evaluation_strategy = "steps",
@@ -61,14 +58,14 @@ args = Seq2SeqTrainingArguments(
     optim="adamw_bnb_8bit",
     weight_decay=0.01,
     save_total_limit=1,
-    num_train_epochs=10,
+    num_train_epochs=20,
     predict_with_generate=True,
     log_level="info",
     logging_dir="logging/"+model_name,
     logging_strategy="steps",
-    logging_steps=1425,
+    logging_steps=46,
     save_strategy="steps",
-    save_steps=1425,
+    save_steps=46, 
     load_best_model_at_end=True, 
     metric_for_best_model="eval_bleu",
     ddp_find_unused_parameters=True,
@@ -111,14 +108,6 @@ def compute_metrics(eval_preds):
 
 # Initializing Trainer
 
-
-# set dropout
-
-dropout_rate = 0.1
-model.config.dropout = dropout_rate
-model.config.attention_dropout = dropout_rate
-
-
 trainer = Seq2SeqTrainer(
     model,
     args,
@@ -132,7 +121,7 @@ trainer = Seq2SeqTrainer(
 
 # start training
 
-trainer.train()
+#trainer.train()
 
 # Evaluate on dev/test set
 
@@ -143,8 +132,8 @@ print("greedy")
 print("dev BLEU: ", dev_results_greedy[-1]["test_bleu"])
 print("test BLEU: ", results_greedy[-1]["test_bleu"])
 
-dev_results_beam_8 = trainer.predict(tokenized_datasets["validation"], num_beams=5)
-results_beam_8 = trainer.predict(tokenized_datasets["test"], num_beams=5)
+dev_results_beam_8 = trainer.predict(tokenized_datasets["validation"], num_beams=8)
+results_beam_8 = trainer.predict(tokenized_datasets["test"], num_beams=8)
 print("beam = 8)")
 print("dev BLEU: ", dev_results_beam_8[-1]["test_bleu"])
 print("test BLEU: ", results_beam_8[-1]["test_bleu"]) 

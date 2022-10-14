@@ -1,4 +1,3 @@
-import os
 import transformers 
 import numpy as np
 #from transformers import M2M100Tokenizer, M2M100Model
@@ -13,35 +12,30 @@ wandb.login(key="8b579a9be261e9cc153188122605c106eda8322e")
 
 raw_datasets = load_dataset("ted_hrlr", "az_to_en")
 metric = load_metric("sacrebleu")
-second_datasets = load_dataset("ted_hrlr", "tr_to_en") 
 
-model_checkpoint = "facebook/m2m100_418M"
+import os 
 
-# get hierarchichal checkpoint trained on intermediate language
+direc = os.listdir("checkpoints/M2M_tokenize_debug:/") 
+checkpoint_name = direc[0]
+model_checkpoint = os.path.join("checkpoints/M2M_tokenize_debug_2/",checkpoint_name) 
 
-intermediate_model_name = "M2M_intermediate_tr_en"
-checkpoint_dir = "checkpoint/"+intermediate_model_name
-
-hierarchichal_checkpoint = os.path.join(checkpoint_dir, os.listdir(checkpoint_dir)[0])
-source_lang = "az"
-target_lang = "en"
-second_lang = "tr"
-
-tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, src_lang=source_lang, tgt_lang=target_lang)
-model = AutoModelForSeq2SeqLM.from_pretrained(hierarchichal_checkpoint)
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, src_lang="az", tgt_lang="en")
+model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
 # We have to set the model decoding to force the target language as the bos token. 
-model.config.forced_bos_token_id = tokenizer.get_lang_id(target_lang)
+model.config.forced_bos_token_id = tokenizer.get_lang_id("en")
 
 
 max_input_length = 128
 max_target_length = 128
+source_lang = "az"
+target_lang = "en"
 
 def preprocess_function(examples):
     inputs = [ex[source_lang] for ex in examples["translation"]]
     targets = [ex[target_lang] for ex in examples["translation"]]
     model_inputs = tokenizer(inputs, max_length=max_input_length, truncation=True)
-    
+
     # Setup the tokenizer for targets
     with tokenizer.as_target_tokenizer():
         labels = tokenizer(targets, max_length=max_target_length, truncation=True)
@@ -50,23 +44,14 @@ def preprocess_function(examples):
     return model_inputs
 
 
-tokenized_datasets = raw_datasets.map(preprocess_function, batched=True, load_from_cache_file=False)
-
-# Tokenize second (intermediate dataset) 
-
-source_lang = second_lang
-target_lang = target_lang
-
-tokenizer.src_lang = source_lang
-tokenizer.tgt_lang = target_lang
-model.config.forced_bos_token_id = tokenizer.get_lang_id(target_lang) 
-
-second_tokenized_datasets = second_datasets.map(preprocess_function, batched=True, load_from_cache_file=False) 
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
+tokenizer.src_lang = "tr"
+tokenizer.tgt_lang = "tr"
 
 
 # Training setup
 batch_size = 4
-model_name = "M2M_downstream_az_en"
+model_name = "M2M_tokenize_debug"
 args = Seq2SeqTrainingArguments(
     "checkpoints/"+model_name,
     evaluation_strategy = "steps",
@@ -87,7 +72,7 @@ args = Seq2SeqTrainingArguments(
     save_strategy="steps",
     save_steps=46, 
     load_best_model_at_end=True, 
-    metric_for_best_model="eval_downstream_lang_bleu",
+    metric_for_best_model="eval_bleu",
     ddp_find_unused_parameters=True,
     fp16=True
 )
@@ -128,21 +113,11 @@ def compute_metrics(eval_preds):
 
 # Initializing Trainer
 
-eval_datasets = {"downstream_lang": tokenized_datasets["validation"], "intermediate_lang": second_tokenized_datasets["validation"]}
-#eval_datasets = {"downstream_lang": tokenized_datasets["validation"]}
-
-# set dropout
-
-dropout_rate = 0.1
-model.config.dropout = dropout_rate
-model.config.attention_dropout = dropout_rate
-
-
 trainer = Seq2SeqTrainer(
     model,
     args,
     train_dataset=tokenized_datasets["train"],
-    eval_dataset=eval_datasets,
+    eval_dataset=tokenized_datasets["validation"],
     data_collator=data_collator,
     tokenizer=tokenizer,
     compute_metrics=compute_metrics,
